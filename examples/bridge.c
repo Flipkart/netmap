@@ -113,12 +113,11 @@ process_rings(struct netmap_ring *rxring, struct netmap_ring *txring,
 
 /* move packts from src to destination */
 static int
-move(struct nm_desc *src, struct nm_desc *dst, u_int limit)
+move(struct nm_desc *src, struct nm_desc *dst, u_int limit, int host_to_net)
 {
 	struct netmap_ring *txring, *rxring;
 	u_int m = 0, si = src->first_rx_ring, di = dst->first_tx_ring;
-	const char *msg = (src->req.nr_ringid & NETMAP_SW_RING) ?
-		"host->net" : "net->host";
+	const char *msg = (host_to_net) ? "host->net" : "net->host";
 
 	while (si <= src->last_rx_ring && di <= dst->last_tx_ring) {
 		rxring = NETMAP_RXRING(src->nifp, si);
@@ -299,12 +298,12 @@ main(int argc, char **argv)
 				rx->head, rx->cur, rx->tail);
 		}
 		if (pollfd[0].revents & POLLOUT) {
-			move(pb, pa, burst);
+			move(pb, pa, burst, 0);
 			// XXX we don't need the ioctl */
 			// ioctl(me[0].fd, NIOCTXSYNC, NULL);
 		}
 		if (pollfd[1].revents & POLLOUT) {
-			move(pa, pb, burst);
+			move(pa, pb, burst, 1);
 			// XXX we don't need the ioctl */
 			// ioctl(me[1].fd, NIOCTXSYNC, NULL);
 		}
